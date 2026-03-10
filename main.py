@@ -7,6 +7,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
+
 logger = logging.getLogger(__name__)
 
 ACTIVE_SLEEP = 30
@@ -14,9 +15,13 @@ MAX_SLEEP = 600
 PARAM_KEY = "notificaciones_sku.last_id"
 
 
+# ==========================================================
+# PERSISTENCIA EN ODOO
+# ==========================================================
+
 def get_last_id(client):
     try:
-        value = client._execute(
+        value = client.execute(
             "ir.config_parameter",
             "get_param",
             PARAM_KEY
@@ -29,7 +34,7 @@ def get_last_id(client):
 
 def save_last_id(client, last_id):
     try:
-        client._execute(
+        client.execute(
             "ir.config_parameter",
             "set_param",
             PARAM_KEY,
@@ -38,6 +43,10 @@ def save_last_id(client, last_id):
     except Exception as e:
         logger.error(f"Error guardando last_id en Odoo: {e}")
 
+
+# ==========================================================
+# LOOP PRINCIPAL
+# ==========================================================
 
 def main():
     try:
@@ -48,7 +57,6 @@ def main():
 
     logger.info("🚀 Motor de notificaciones iniciado (persistencia en Odoo).")
 
-    # 🔹 Leer last_id UNA sola vez
     last_id = get_last_id(odoo)
     logger.info(f"Estado inicial last_id: {last_id}")
 
