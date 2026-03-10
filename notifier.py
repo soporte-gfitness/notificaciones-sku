@@ -14,20 +14,19 @@ logger = logging.getLogger(__name__)
 
 def create_odoo_activity(client, product_id, product_name):
     try:
-        # Buscar tipo de actividad por nombre
+        # Buscar tipo estándar (Por hacer / To Do)
         activity_type = client.execute(
             'mail.activity.type',
             'search',
-            [['name', '=', 'To Do']],
+            [['category', '=', 'default']],
             limit=1
         )
 
         if not activity_type:
-            raise Exception("No se encontró tipo de actividad 'To Do'")
+            raise Exception("No existe tipo de actividad default en esta base")
 
         activity_type_id = activity_type[0]
 
-        # Buscar modelo product.template dinámicamente
         model_id = client.execute(
             'ir.model',
             'search',
@@ -40,7 +39,7 @@ def create_odoo_activity(client, product_id, product_name):
             'res_model_id': model_id,
             'activity_type_id': activity_type_id,
             'summary': f'Completar producto creado: {product_name}',
-            'note': '<p>Detección automática de nuevo producto.</p>',
+            'note': '<p>Producto detectado automáticamente.</p>',
             'date_deadline': datetime.now().strftime('%Y-%m-%d'),
             'user_id': client.uid,
         }
@@ -51,7 +50,7 @@ def create_odoo_activity(client, product_id, product_name):
             activity_vals
         )
 
-        logger.info(f"   -> ✅ Actividad creada correctamente (ID: {result})")
+        logger.info(f"   -> ✅ Actividad creada (ID: {result})")
 
     except Exception:
         logger.exception("   -> ❌ Error creando actividad:")
