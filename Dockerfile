@@ -16,3 +16,6 @@ COPY . .
 
 # Comando de arranque
 CMD ["python", "main.py"]
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD pgrep -f "python main.py" || exit 1
