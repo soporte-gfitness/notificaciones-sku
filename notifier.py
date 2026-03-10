@@ -8,48 +8,55 @@ from email.mime.multipart import MIMEMultipart
 
 logger = logging.getLogger(__name__)
 
-
 # ==========================================================
 # CREACIÓN DE ACTIVIDAD EN ODOO
 # ==========================================================
 
 def create_odoo_activity(client, product_id, product_name):
     try:
-        MODEL_ID = 208
-        ACTIVITY_TYPE_ID = 124
+        MODEL_ID = 208  # product.template (verificado en Odoo)
+
+        # Buscar tipo de actividad correcto
+        activity_type = client._execute(
+            'mail.activity.type',
+            'search_read',
+            [[['name', '=', 'Producto Nuevo Creado']]],
+            {'fields': ['id'], 'limit': 1}
+        )
+
+        if not activity_type:
+            logger.error("❌ No se encontró tipo 'Producto Nuevo Creado'.")
+            return
+
+        ACTIVITY_TYPE_ID = activity_type[0]['id']
 
         activity_vals = {
             'res_id': product_id,
             'res_model_id': MODEL_ID,
             'activity_type_id': ACTIVITY_TYPE_ID,
-            'summary': f'Revisar nuevo producto: {product_name}',
-            'note': '<p>Detección automática de nuevo ingreso.</p>',
+            'summary': f'Completar producto creado: {product_name}',
+            'note': '<p>Detección automática de nuevo producto.</p>',
             'date_deadline': datetime.now().strftime('%Y-%m-%d'),
             'user_id': client.uid,
         }
 
-        client._execute(
+        result = client._execute(
             'mail.activity',
             'create',
             [activity_vals]
         )
 
-        logger.info("   -> ✅ Actividad creada correctamente.")
+        logger.info(f"   -> ✅ Actividad creada correctamente (ID: {result})")
 
     except Exception:
         logger.exception("   -> ❌ Error creando actividad:")
+
 
 # ==========================================================
 # NOTIFICACIÓN PRINCIPAL
 # ==========================================================
 
 def send_notifications(product, client=None):
-    """
-    Aplica filtros y ejecuta:
-    - Envío de mail
-    - Creación de actividad
-    """
-
     p_name = product.get('name', 'Sin nombre')
 
     # 1️⃣ FILTRO DE TIPO
@@ -59,10 +66,8 @@ def send_notifications(product, client=None):
 
     # 2️⃣ FILTRO DE CATEGORÍA
     categoria_info = product.get('categ_id')
-
     if categoria_info and isinstance(categoria_info, list):
         nombre_cat = categoria_info[1].upper()
-
         if nombre_cat.startswith("REPUESTOS") or nombre_cat.startswith("OUTLET"):
             logger.info(f"🚫 Saltando {p_name}: Categoría excluida ({nombre_cat}).")
             return
@@ -146,6 +151,8 @@ Sistema de Automatización.
 
     except Exception as e:
         logger.error(f"   -> ❌ Error SMTP: {e}")
+        return
 
+    # Crear actividad si el mail fue enviado
     if client:
         create_odoo_activity(client, product['id'], p_name)
