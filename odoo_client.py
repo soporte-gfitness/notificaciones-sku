@@ -92,5 +92,5 @@ class OdooClient:
                 }
             )
         except Exception as e:
-            logger.error(f"Error consultando productos: {e}")
+            logger.error(f"Error consultando productos: {repr(e)}")
             return []

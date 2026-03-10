@@ -19,7 +19,7 @@ def get_last_id(client):
         value = client._execute(
             "ir.config_parameter",
             "get_param",
-            [PARAM_KEY]
+            PARAM_KEY
         )
         return int(value) if value else 0
     except Exception as e:
@@ -32,7 +32,8 @@ def save_last_id(client, last_id):
         client._execute(
             "ir.config_parameter",
             "set_param",
-            [PARAM_KEY, str(last_id)]
+            PARAM_KEY,
+            str(last_id)
         )
     except Exception as e:
         logger.error(f"Error guardando last_id en Odoo: {e}")
