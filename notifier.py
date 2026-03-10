@@ -60,7 +60,7 @@ def create_odoo_activity(client, product_id, product_name):
         logger.info("   -> ✅ Actividades creadas correctamente.")
 
     except Exception as e:
-        logger.error(f"   -> ❌ Error creando actividad: {e}")
+        logger.error(f"   -> ❌ Error creando actividad: {repr(e)}")
 
 
 # ==========================================================
