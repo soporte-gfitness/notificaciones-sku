@@ -14,39 +14,44 @@ logger = logging.getLogger(__name__)
 # ==========================================================
 
 def create_odoo_activity(client, product_id, product_name):
-    """
-    Crea actividades en Odoo para los responsables definidos.
-    """
     try:
         lista_usuarios_id = [18484]
 
-        # Buscar tipo de actividad
-        activity_type = client._execute(
+        # Obtener tipo de actividad (el primero disponible)
+        activity_types = client._execute(
             'mail.activity.type',
-            'search',
-            [[['name', '=', 'Por hacer']]]
+            'search_read',
+            [[]],
+            {'fields': ['id'], 'limit': 1}
         )
 
-        type_id = activity_type[0] if activity_type else 1
+        if not activity_types:
+            logger.error("No existen tipos de actividad en Odoo.")
+            return
 
-        # Buscar modelo product.template
-        model_ids = client._execute(
+        type_id = activity_types[0]['id']
+
+        # Obtener ID del modelo dinámicamente
+        model_data = client._execute(
             'ir.model',
-            'search',
-            [[['model', '=', 'product.template']]]
+            'search_read',
+            [[['model', '=', 'product.template']]],
+            {'fields': ['id'], 'limit': 1}
         )
 
-        if not model_ids:
+        if not model_data:
             logger.error("No se encontró modelo product.template.")
             return
+
+        model_id = model_data[0]['id']
 
         for u_id in lista_usuarios_id:
             activity_vals = {
                 'res_id': product_id,
-                'res_model_id': model_ids[0],
+                'res_model_id': model_id,
                 'activity_type_id': type_id,
                 'summary': f'Revisar nuevo producto: {product_name}',
-                'note': '<p>Detección automática de nuevo ingreso. Verificar stock y precio.</p>',
+                'note': '<p>Detección automática de nuevo ingreso.</p>',
                 'date_deadline': datetime.now().strftime('%Y-%m-%d'),
                 'user_id': u_id,
             }
@@ -60,8 +65,7 @@ def create_odoo_activity(client, product_id, product_name):
         logger.info("   -> ✅ Actividades creadas correctamente.")
 
     except Exception as e:
-        logger.error(f"   -> ❌ Error creando actividad: {repr(e)}")
-
+        logger.exception("   -> ❌ Error creando actividad:")
 
 # ==========================================================
 # NOTIFICACIÓN PRINCIPAL
