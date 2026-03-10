@@ -9,13 +9,13 @@ from email.mime.multipart import MIMEMultipart
 logger = logging.getLogger(__name__)
 
 # ==========================================================
-# CREACIÓN DE ACTIVIDAD EN ODOO
+# CREACIÓN DE ACTIVIDAD EN ODOO (JSON-RPC)
 # ==========================================================
 
 def create_odoo_activity(client, product_id, product_name):
     try:
-        MODEL_ID = 208           # product.template
-        ACTIVITY_TYPE_ID = 124   # Producto Nuevo Creado (verificado manualmente)
+        MODEL_ID = 208         # product.template
+        ACTIVITY_TYPE_ID = 124 # Producto Nuevo Creado
 
         activity_vals = {
             'res_id': product_id,
@@ -27,10 +27,10 @@ def create_odoo_activity(client, product_id, product_name):
             'user_id': client.uid,
         }
 
-        result = client._execute(
+        result = client.execute(
             'mail.activity',
             'create',
-            [activity_vals]
+            activity_vals
         )
 
         logger.info(f"   -> ✅ Actividad creada correctamente (ID: {result})")
@@ -140,6 +140,6 @@ Sistema de Automatización.
         logger.error(f"   -> ❌ Error SMTP: {e}")
         return
 
-    # Crear actividad si el mail fue enviado
+    # Crear actividad solo si el mail salió bien
     if client:
         create_odoo_activity(client, product['id'], p_name)
