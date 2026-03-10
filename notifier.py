@@ -9,51 +9,42 @@ from email.mime.multipart import MIMEMultipart
 logger = logging.getLogger(__name__)
 
 # ==========================================================
-# CREACIÓN DE ACTIVIDAD EN ODOO (JSON-RPC)
+# CREACIÓN DE NOTIFICACION EN ODOO (JSON-RPC)
 # ==========================================================
 
-def create_odoo_activity(client, product_id, product_name):
+def create_odoo_notification(client, product_id, product_name):
     try:
-        # Buscar tipo estándar (Por hacer / To Do)
-        activity_type = client.execute(
-            'mail.activity.type',
-            'search',
-            [['category', '=', 'default']],
-            limit=1
+        # ID del usuario que debe recibir la notificación
+        USER_ID = 18484  # <-- puedes cambiarlo
+
+        # Obtener partner del usuario destino
+        user = client.execute(
+            'res.users',
+            'read',
+            [USER_ID],
+            ['partner_id']
         )
 
-        if not activity_type:
-            raise Exception("No existe tipo de actividad default en esta base")
+        partner_id = user[0]['partner_id'][0]
 
-        activity_type_id = activity_type[0]
-
-        model_id = client.execute(
-            'ir.model',
-            'search',
-            [['model', '=', 'product.template']],
-            limit=1
-        )[0]
-
-        activity_vals = {
-            'res_id': product_id,
-            'res_model_id': model_id,
-            'activity_type_id': activity_type_id,
-            'summary': f'Completar producto creado: {product_name}',
-            'note': '<p>Producto detectado automáticamente.</p>',
-            'date_deadline': datetime.now().strftime('%Y-%m-%d'),
-            'user_id': 18484,
-        }
-
-        result = client.execute(
-            'mail.activity',
-            'create',
-            activity_vals
+        # Publicar mensaje en el producto
+        client.execute(
+            'product.template',
+            'message_post',
+            product_id,
+            body=f"""
+                <b>Nuevo producto creado:</b> {product_name}<br/>
+                Producto detectado automáticamente.
+            """,
+            partner_ids=[partner_id],
+            message_type='notification',
+            subtype_xmlid='mail.mt_comment'
         )
 
-        logger.info(f"   -> ✅ Actividad creada (ID: {result})")
+        logger.info("   -> ✅ Notificación informativa enviada.")
 
     except Exception:
-        logger.exception("   -> ❌ Error creando actividad:")
+        logger.exception("   -> ❌ Error creando notificación:")
 
 
 # ==========================================================
@@ -159,4 +150,4 @@ Sistema de Automatización.
 
     # Crear actividad solo si el mail salió bien
     if client:
-        create_odoo_activity(client, product['id'], p_name)
+        create_odoo_notification(client, product['id'], p_name)
