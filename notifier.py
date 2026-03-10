@@ -14,13 +14,31 @@ logger = logging.getLogger(__name__)
 
 def create_odoo_activity(client, product_id, product_name):
     try:
-        MODEL_ID = 208         # product.template
-        ACTIVITY_TYPE_ID = 124 # Producto Nuevo Creado
+        # Buscar tipo de actividad por nombre
+        activity_type = client.execute(
+            'mail.activity.type',
+            'search',
+            [['name', '=', 'To Do']],
+            limit=1
+        )
+
+        if not activity_type:
+            raise Exception("No se encontró tipo de actividad 'To Do'")
+
+        activity_type_id = activity_type[0]
+
+        # Buscar modelo product.template dinámicamente
+        model_id = client.execute(
+            'ir.model',
+            'search',
+            [['model', '=', 'product.template']],
+            limit=1
+        )[0]
 
         activity_vals = {
             'res_id': product_id,
-            'res_model_id': MODEL_ID,
-            'activity_type_id': ACTIVITY_TYPE_ID,
+            'res_model_id': model_id,
+            'activity_type_id': activity_type_id,
             'summary': f'Completar producto creado: {product_name}',
             'note': '<p>Detección automática de nuevo producto.</p>',
             'date_deadline': datetime.now().strftime('%Y-%m-%d'),
