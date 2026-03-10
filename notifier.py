@@ -41,7 +41,7 @@ def create_odoo_activity(client, product_id, product_name):
             'summary': f'Completar producto creado: {product_name}',
             'note': '<p>Producto detectado automáticamente.</p>',
             'date_deadline': datetime.now().strftime('%Y-%m-%d'),
-            'user_id': client.uid,
+            'user_id': 17836,
         }
 
         result = client.execute(
