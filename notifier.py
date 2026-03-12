@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 def create_odoo_notification(client, product_id, product_name):
     try:
         # ID del usuario que debe recibir la notificación
-        USER_ID = 18484  # <-- puedes cambiarlo
+        USER_ID = 18390  # <-- puedes cambiarlo
 
         # Obtener partner del usuario destino
         user = client.execute(
