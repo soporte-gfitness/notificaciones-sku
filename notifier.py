@@ -13,38 +13,35 @@ logger = logging.getLogger(__name__)
 # ==========================================================
 
 def create_odoo_notification(client, product_id, product_name):
+    """Crea actividades para los IDs específicos de los responsables."""
     try:
-        # ID del usuario que debe recibir la notificación
-        USER_ID = 18390  # <-- puedes cambiarlo
+        #lista_usuarios_id = [17836,17423,17439,8,18500,17616,18351,14657,17740]
+        lista_usuarios_id = [18390]
 
-        # Obtener partner del usuario destino
-        user = client.execute(
-            'res.users',
-            'read',
-            [USER_ID],
-            ['partner_id']
-        )
+        activity_type = client._json_rpc("object", "execute_kw", client.db, client.uid, client.password,
+                                        'mail.activity.type', 'search', [[['name', '=', 'Por hacer']]])
+        type_id = activity_type[0] if activity_type else 1
+        
+        model_ids = client._json_rpc("object", "execute_kw", client.db, client.uid, client.password,
+                                    'ir.model', 'search', [[['model', '=', 'product.template']]])
+        if not model_ids: return
 
-        partner_id = user[0]['partner_id'][0]
-
-        # Publicar mensaje en el producto
-        client.execute(
-            'product.template',
-            'message_post',
-            product_id,
-            body=f"""
-                <b>Nuevo producto creado:</b> {product_name}<br/>
-                Producto detectado automáticamente.
-            """,
-            partner_ids=[partner_id],
-            message_type='notification',
-            subtype_xmlid='mail.mt_comment'
-        )
-
-        logger.info("   -> ✅ Notificación informativa enviada.")
-
-    except Exception:
-        logger.exception("   -> ❌ Error creando notificación:")
+        for u_id in lista_usuarios_id:
+            activity_vals = {
+                'res_id': product_id,
+                'res_model_id': model_ids[0],
+                'activity_type_id': type_id,
+                'summary': f'Revisar nuevo producto: {product_name}',
+                'note': f'<p>Detección automática de nuevo ingreso. Verificar stock y precio.</p>',
+                'date_deadline': datetime.now().strftime('%Y-%m-%d'),
+                'user_id': u_id,
+            }
+            client._json_rpc("object", "execute_kw", client.db, client.uid, client.password,
+                            'mail.activity', 'create', [activity_vals])
+        
+        logger.info(f"   -> ✅ Actividades creadas para IDs: {lista_usuarios_id}")
+    except Exception as e:
+        logger.error(f"   -> ❌ Error en actividad Odoo: {e}")
 
 
 # ==========================================================
@@ -63,7 +60,7 @@ def send_notifications(product, client=None):
     categoria_info = product.get('categ_id')
     if categoria_info and isinstance(categoria_info, list):
         nombre_cat = categoria_info[1].upper()
-        if nombre_cat.startswith("REPUESTOS") or nombre_cat.startswith("OUTLET"):
+        if nombre_cat.startswith("REPUESTOS") or nombre_cat.startswith("OUTLET") or nombre_cat.startswith("Todos"):
             logger.info(f"🚫 Saltando {p_name}: Categoría excluida ({nombre_cat}).")
             return
 
